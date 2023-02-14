@@ -1,3 +1,8 @@
 rootProject.name = 'bot'
 include 'dispatcher'
+include 'rabbit-mq'
+include 'dispatcher:buisness-node'
+findProject(':dispatcher:buisness-node')?.name = 'buisness-node'
+include 'buisness-node'
+include 'jpa'
 

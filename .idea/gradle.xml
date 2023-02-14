@@ -9,7 +9,11 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/buisness-node" />
             <option value="$PROJECT_DIR$/dispatcher" />
+            <option value="$PROJECT_DIR$/dispatcher/buisness-node" />
+            <option value="$PROJECT_DIR$/jpa" />
+            <option value="$PROJECT_DIR$/rabbit-mq" />
           </set>
         </option>
       </GradleProjectSettings>
