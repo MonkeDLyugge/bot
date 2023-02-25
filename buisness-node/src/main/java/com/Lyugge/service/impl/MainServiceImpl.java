@@ -2,11 +2,15 @@ package com.Lyugge.service.impl;
 
 import com.Lyugge.dao.AppUserDao;
 import com.Lyugge.dao.RawDataDao;
+import com.Lyugge.entity.AppDocument;
+import com.Lyugge.entity.AppPhoto;
 import com.Lyugge.entity.AppUser;
 import com.Lyugge.entity.RawData;
-import com.Lyugge.entity.enums.UserState;
+import com.Lyugge.exception.UploadFileException;
+import com.Lyugge.service.FileService;
 import com.Lyugge.service.MainService;
 import com.Lyugge.service.ProducerService;
+import com.Lyugge.service.enums.ServiceCommand;
 import lombok.extern.log4j.Log4j;
 import org.jvnet.hk2.annotations.Service;
 import org.springframework.stereotype.Component;
@@ -15,18 +19,21 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 
 import static com.Lyugge.entity.enums.UserState.BASIC_STATE;
 import static com.Lyugge.entity.enums.UserState.WAIT_FOR_EMAIL_STATE;
-import static com.Lyugge.service.enums.ServiceCommands.*;
+import static com.Lyugge.service.enums.ServiceCommand.*;
 
 @Service
 @Component
 @Log4j
 public class MainServiceImpl implements MainService {
     private final RawDataDao rawDataDao;
+
+    private final FileService fileService;
     private final ProducerService producerService;
     private final AppUserDao appUserDao;
 
-    public MainServiceImpl(RawDataDao rawDataDao, ProducerService producerService, AppUserDao appUserDao) {
+    public MainServiceImpl(RawDataDao rawDataDao, FileService fileService, ProducerService producerService, AppUserDao appUserDao) {
         this.rawDataDao = rawDataDao;
+        this.fileService = fileService;
         this.producerService = producerService;
         this.appUserDao = appUserDao;
     }
@@ -35,14 +42,15 @@ public class MainServiceImpl implements MainService {
     public void processTextMessage(Update update) {
         saveRawData(update);
 
-        var message = update.getMessage();
         var appUser = findOrSaveAppUser(update);
         var userState = appUser.getState();
         var text = update.getMessage().getText();
         var output = "";
 
-        if (CANCEL.equals(text)) {
-            output = CancelProcess(appUser);
+        var serviceCommand = ServiceCommand.fromValue(text);
+
+        if (CANCEL.equals(serviceCommand)) {
+            output = cancelProcess(appUser);
         } else if (BASIC_STATE.equals(userState)) {
             output = processServiceCommand(appUser, text);
         } else if (WAIT_FOR_EMAIL_STATE.equals(userState)) {
@@ -64,9 +72,18 @@ public class MainServiceImpl implements MainService {
         if (isNotAllowToSendContent(chatId, appUser)) {
             return;
         }
-        //TODO add saving document
-        var answer = "Document successfully uploaded! Here is your link): https://test_link/doc";
-        sendAnswer(answer, chatId);
+        try {
+            AppDocument doc = fileService.processDoc(update.getMessage());
+            //TODO Add link generation
+            var answer = "Document have been uploaded successfully.\n" +
+                    "Link: https://some_link.com/get-doc/777";
+            sendAnswer(answer, chatId);
+        } catch (UploadFileException e) {
+            log.error(e);
+            var error = "Unfortunately file have not been uploaded." +
+                    "Please try again later..";
+            sendAnswer(error, chatId);
+        }
     }
 
     @Override
@@ -77,9 +94,19 @@ public class MainServiceImpl implements MainService {
         if (isNotAllowToSendContent(chatId, appUser)) {
             return;
         }
-        //TODO add saving photo
-        var answer = "Photo successfully uploaded! Here is your link): https://test_link/photo";
-        sendAnswer(answer, chatId);
+
+        try {
+            AppPhoto photo = fileService.processPhoto(update.getMessage());
+            //TODO Add link generation
+            var answer = "Photo have been uploaded successfully.\n" +
+                    "Link: https://some_link.com/get-photo/666";
+            sendAnswer(answer, chatId);
+        } catch(UploadFileException e)  {
+            log.error(e);
+            var error = "Unfortunately file have not been uploaded." +
+                    "Please try again later..";
+            sendAnswer(error, chatId);
+        }
     }
 
     private boolean isNotAllowToSendContent(Long chatId, AppUser appUser) {
@@ -89,7 +116,7 @@ public class MainServiceImpl implements MainService {
             sendAnswer(error, chatId);
             return true;
         } else if (!BASIC_STATE.equals(userState)) {
-            var error = "Please stop right now running command. Type /cancel for uploading data";
+            var error = "Please stop right now running command. Type /cancel, then upload data";
             sendAnswer(error, chatId);
             return true;
         }
@@ -105,12 +132,13 @@ public class MainServiceImpl implements MainService {
     }
 
     private String processServiceCommand(AppUser appUser, String cmd) {
-        if (REGISTRATION.equals(cmd)) {
+        var serviceCommand = ServiceCommand.fromValue(cmd);
+        if (REGISTRATION.equals(serviceCommand)) {
             //TODO add registration
             return "Command not working now..";
-        } else if (HELP.equals(cmd)) {
+        } else if (HELP.equals(serviceCommand)) {
             return help();
-        } else if (START.equals(cmd)) {
+        } else if (START.equals(serviceCommand)) {
             return "Hello there! Wanna see the list of available commands? Type /help";
         } else {
             return "Command not found! Wanna see the list of available commands? Type /help";
@@ -118,12 +146,14 @@ public class MainServiceImpl implements MainService {
     }
 
     private String help() {
-        return "List of available commands:\n" +
-                "/cancel - stopping command running right now;\n" +
-                "/registration - registration for a new users;\n";
+        return """
+                List of available commands:
+                /cancel - stopping command running right now;
+                /registration - registration for a new users;
+                """;
     }
 
-    private String CancelProcess(AppUser appUser) {
+    private String cancelProcess(AppUser appUser) {
         appUser.setState(BASIC_STATE);
         appUserDao.save(appUser);
         return "Command canceled!";
