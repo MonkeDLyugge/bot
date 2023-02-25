@@ -10,6 +10,7 @@ import com.Lyugge.exception.UploadFileException;
 import com.Lyugge.service.FileService;
 import com.Lyugge.service.MainService;
 import com.Lyugge.service.ProducerService;
+import com.Lyugge.service.enums.LinkType;
 import com.Lyugge.service.enums.ServiceCommand;
 import lombok.extern.log4j.Log4j;
 import org.jvnet.hk2.annotations.Service;
@@ -74,9 +75,9 @@ public class MainServiceImpl implements MainService {
         }
         try {
             AppDocument doc = fileService.processDoc(update.getMessage());
-            //TODO Add link generation
+            String link = fileService.generateLink(doc.getId(), LinkType.GET_DOC);
             var answer = "Document have been uploaded successfully.\n" +
-                    "Link: https://some_link.com/get-doc/777";
+                    "Link: " + link;
             sendAnswer(answer, chatId);
         } catch (UploadFileException e) {
             log.error(e);
@@ -94,12 +95,11 @@ public class MainServiceImpl implements MainService {
         if (isNotAllowToSendContent(chatId, appUser)) {
             return;
         }
-
         try {
             AppPhoto photo = fileService.processPhoto(update.getMessage());
-            //TODO Add link generation
+            String link = fileService.generateLink(photo.getId(), LinkType.GET_PHOTO);
             var answer = "Photo have been uploaded successfully.\n" +
-                    "Link: https://some_link.com/get-photo/666";
+                    "Link: " + link;
             sendAnswer(answer, chatId);
         } catch(UploadFileException e)  {
             log.error(e);

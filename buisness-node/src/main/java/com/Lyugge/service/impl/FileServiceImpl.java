@@ -8,6 +8,8 @@ import com.Lyugge.entity.AppPhoto;
 import com.Lyugge.entity.BinaryContent;
 import com.Lyugge.exception.UploadFileException;
 import com.Lyugge.service.FileService;
+import com.Lyugge.service.enums.LinkType;
+import com.Lyugge.utils.CryptoTool;
 import lombok.extern.log4j.Log4j;
 import org.json.JSONObject;
 import org.jvnet.hk2.annotations.Service;
@@ -34,14 +36,18 @@ public class FileServiceImpl implements FileService {
     private String fileInfoUri;
     @Value("${service.file_storage.uri}")
     private String fileStorageUri;
+    @Value("${link.address}")
+    private String linkAddress;
     private final AppDocumentDao appDocumentDao;
     private final AppPhotoDao appPhotoDao;
     private final BinaryContentDao binaryContentDao;
+    private final CryptoTool cryptoTool;
 
-    public FileServiceImpl(AppDocumentDao appDocumentDao, AppPhotoDao appPhotoDao, BinaryContentDao binaryContentDao) {
+    public FileServiceImpl(AppDocumentDao appDocumentDao, AppPhotoDao appPhotoDao, BinaryContentDao binaryContentDao, CryptoTool cryptoTool) {
         this.appDocumentDao = appDocumentDao;
         this.appPhotoDao = appPhotoDao;
         this.binaryContentDao = binaryContentDao;
+        this.cryptoTool = cryptoTool;
     }
 
     @Override
@@ -60,8 +66,9 @@ public class FileServiceImpl implements FileService {
 
     @Override
     public AppPhoto processPhoto(Message telegramMessage) {
-        //TODO processing 1 photo now, should process all of them
-        PhotoSize telegramPhoto = telegramMessage.getPhoto().get(0);
+        var photoSizeCount = telegramMessage.getPhoto().size();
+        var photoIndex = photoSizeCount > 1 ? telegramMessage.getPhoto().size() - 1 : 0;
+        PhotoSize telegramPhoto = telegramMessage.getPhoto().get(photoIndex);
         String fileId = telegramPhoto.getFileId();
         ResponseEntity<String> response = getFilePath(fileId);
         if (response.getStatusCode() == HttpStatus.OK) {
@@ -136,5 +143,11 @@ public class FileServiceImpl implements FileService {
                 token,
                 fileId
         );
+    }
+
+    @Override
+    public String generateLink(Long id, LinkType linkType) {
+        var hash = cryptoTool.hashOf(id);
+        return "http://" + linkAddress + "/file/" + linkType + "?id=" + hash;
     }
 }

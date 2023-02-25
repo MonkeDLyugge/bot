@@ -11,9 +11,10 @@
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/buisness-node" />
             <option value="$PROJECT_DIR$/dispatcher" />
-            <option value="$PROJECT_DIR$/dispatcher/buisness-node" />
             <option value="$PROJECT_DIR$/jpa" />
             <option value="$PROJECT_DIR$/rabbit-mq" />
+            <option value="$PROJECT_DIR$/rest-service" />
+            <option value="$PROJECT_DIR$/utils" />
           </set>
         </option>
       </GradleProjectSettings>

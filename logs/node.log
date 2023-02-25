@@ -4072,3 +4072,5 @@
 2023-02-24 11:47:50 DEBUG ConsumerServiceImpl:39 - NODE: Doc message received now
 2023-02-24 11:47:51 DEBUG ConsumerServiceImpl:39 - NODE: Doc message received now
 2023-02-25 17:56:00 DEBUG ConsumerServiceImpl:32 - NODE: Photo message received now
+2023-02-25 22:24:17 DEBUG ConsumerServiceImpl:32 - NODE: Photo message received now
+2023-02-25 22:25:35 DEBUG ConsumerServiceImpl:32 - NODE: Photo message received now
