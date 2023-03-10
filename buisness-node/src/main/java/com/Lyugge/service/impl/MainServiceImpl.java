@@ -7,6 +7,7 @@ import com.Lyugge.entity.AppPhoto;
 import com.Lyugge.entity.AppUser;
 import com.Lyugge.entity.RawData;
 import com.Lyugge.exception.UploadFileException;
+import com.Lyugge.service.AppUserService;
 import com.Lyugge.service.FileService;
 import com.Lyugge.service.MainService;
 import com.Lyugge.service.ProducerService;
@@ -30,12 +31,14 @@ public class MainServiceImpl implements MainService {
 
     private final FileService fileService;
     private final ProducerService producerService;
+    private final AppUserService appUserService;
     private final AppUserDao appUserDao;
 
-    public MainServiceImpl(RawDataDao rawDataDao, FileService fileService, ProducerService producerService, AppUserDao appUserDao) {
+    public MainServiceImpl(RawDataDao rawDataDao, FileService fileService, ProducerService producerService, AppUserService appUserService, AppUserDao appUserDao) {
         this.rawDataDao = rawDataDao;
         this.fileService = fileService;
         this.producerService = producerService;
+        this.appUserService = appUserService;
         this.appUserDao = appUserDao;
     }
 
@@ -55,7 +58,7 @@ public class MainServiceImpl implements MainService {
         } else if (BASIC_STATE.equals(userState)) {
             output = processServiceCommand(appUser, text);
         } else if (WAIT_FOR_EMAIL_STATE.equals(userState)) {
-            //TODO add support for this branch
+            output = appUserService.setEmail(appUser, text);
         } else {
             log.error("Unknown user state: " + userState);
             output = "Unknown error! Try /cancel and start again!";
@@ -134,8 +137,7 @@ public class MainServiceImpl implements MainService {
     private String processServiceCommand(AppUser appUser, String cmd) {
         var serviceCommand = ServiceCommand.fromValue(cmd);
         if (REGISTRATION.equals(serviceCommand)) {
-            //TODO add registration
-            return "Command not working now..";
+            return appUserService.registerUser(appUser);
         } else if (HELP.equals(serviceCommand)) {
             return help();
         } else if (START.equals(serviceCommand)) {
@@ -162,20 +164,19 @@ public class MainServiceImpl implements MainService {
     private AppUser findOrSaveAppUser(Update update) {
         var message = update.getMessage();
         var telegramUser = message.getFrom();
-        AppUser persistentAppUser = appUserDao.findAppUserByTelegramUserId(telegramUser.getId());
-        if (persistentAppUser == null) {
+        var optionalAppUser = appUserDao.findByTelegramUserId(telegramUser.getId());
+        if (optionalAppUser.isEmpty()) {
             AppUser transientAppUser = AppUser.builder()
                     .telegramUserId(telegramUser.getId())
                     .userName(telegramUser.getUserName())
                     .firstName(telegramUser.getFirstName())
                     .lastName(telegramUser.getLastName())
-                    //TODO change isActive field
-                    .isActive(true)
+                    .isActive(false)
                     .state(BASIC_STATE)
                     .build();
             return appUserDao.save(transientAppUser);
         }
-        return persistentAppUser;
+        return optionalAppUser.get();
     }
 
     private void saveRawData(Update update) {

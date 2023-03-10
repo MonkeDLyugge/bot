@@ -1,4 +1,4 @@
-package com.Lyugge.service.controller;
+package com.Lyugge.controller;
 
 
 import com.Lyugge.service.FileService;

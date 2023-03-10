@@ -5,4 +5,5 @@ include 'buisness-node'
 include 'jpa'
 include 'rest-service'
 include 'utils'
+include 'mail-service'
 
